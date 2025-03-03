@@ -10,7 +10,25 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 		<http:listener doc:name="Listener" doc:id="ee145faf-59df-4700-9030-5d423bd1caa5" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="PUT">
 			<http:response statusCode="#[vars.StatusCode]" reasonPhrase="#[vars.StatusMessage]" />
 		</http:listener>
-		<logger level="INFO" doc:name="startlogger" doc:id="72315f54-3b03-424d-8c8e-4659d5153533" message="the flow is started"/>
+		<ee:transform doc:name="Transform Message" doc:id="0590492e-eb17-46eb-9b6a-7602cc4c243a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="correlationID" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-correlation-id' default payload.covidCase.caseID]]></ee:set-variable>
+				<ee:set-variable variableName="transactionID" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="startlogger" doc:id="72315f54-3b03-424d-8c8e-4659d5153533" message='#["The flow is started with " ++ vars.correlationID ++ "and " ++ vars.transactionID]'/>
 		<ee:transform doc:name="Transform Message" doc:id="d1cbe4e2-0068-4643-8037-6ed095cd02ef" >
 			<ee:message >
 			</ee:message>
