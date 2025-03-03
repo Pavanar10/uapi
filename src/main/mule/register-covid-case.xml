@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="39925182-2697-4a55-987e-90a53b8aa4d5" basePath="covid">
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="6fee14b4-6545-4d19-b26c-e2a4e5cc99a7" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="employeedata" />
+	</db:config>
+	<flow name="register-covid-caseFlow" doc:id="b8c37e6f-f3c8-4af3-baf9-a23f582e0e71" >
+		<http:listener doc:name="Listener" doc:id="a122ee42-e61a-4293-a409-990ecb0e2b9f" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="POST">
+			<http:response reasonPhrase="#[vars.StatusMessage]" statusCode="#[vars.statusCode]"/>
+			<http:error-response statusCode="#[vars.]" />
+		</http:listener>
+		<logger level="INFO" doc:name="Start log" doc:id="f8edc1da-c987-4162-a6a1-275898e4e112" message='started flow  #[payload]'/>
+		<ee:transform doc:name="Transform Message" doc:id="72bd428d-d5ee-4497-bd57-30d61e28b89f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="covidPayload" ><![CDATA[%dw 2.0
+output application/java
+var name = "UHIS"
+---
+{
+	national_id: payload.nationalID,
+	street_address: payload.address.streetAddress,
+	country: payload.address.country,
+	city: payload.address.city,
+	date_of_birth: payload.dateOfBirth,
+	case_type: payload.caseType,
+	last_name: payload.lastName,
+	source: payload.source,
+	national_id_type: payload.nationalIDType,
+	update_date: now() as Date,
+	create_by: name,
+	phone: payload.phone,
+	state: payload.address.state,
+	postal: payload.address.postal,
+	create_date: now() as Date,
+	update_by: name,
+	first_name: payload.firstName,
+	email: payload.email
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:insert doc:name="InsertCovid case master" doc:id="46830e44-2b8c-4914-88ec-34022037bca1" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO cvd_case_master(source,case_type, first_name, last_name, phone, email, date_of_birth,national_id, national_id_type, street_address, city, 
+                 state, 
+                 postal, 
+                 country, 
+                 create_date, 
+                 update_date, 
+                 create_by, 
+                 update_by) 
+    VALUES     (:source, 
+                :case_type, 
+                :first_name, 
+                :last_name, 
+                :phone, 
+                :email, 
+                :date_of_birth, 
+                :national_id, 
+                :national_id_type, 
+                :street_address, 
+                :city, 
+                :state, 
+                :postal, 
+                :country, 
+                :create_date, 
+                :update_date, 
+                :create_by, 
+                :update_by) ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.covidPayload]]]></db:input-parameters>
+		</db:insert>
+		<db:select doc:name="SelectCaseID" doc:id="57135bce-61e9-4cd8-95f0-512699f18d86" config-ref="Database_Config">
+			<db:sql ><![CDATA[select max(case_id) as case_id from cvd_case_master where NATIONAL_ID=:national_id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	national_id:vars.covidPayload.national_id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="b5bdf47b-9250-45ea-a112-1e983ec79c3e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"case_id":payload[0].case_id
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="StatusMessage" ><![CDATA["Success"]]></ee:set-variable>
+				<ee:set-variable variableName="statusCode" ><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="EndLogger" doc:id="118a5ac8-842c-481e-8183-7e9cff329e53" message="End log completed"/>
+	</flow>
+</mule>

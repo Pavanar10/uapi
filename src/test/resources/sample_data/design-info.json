@@ -1,0 +1,16 @@
+{
+  "sampleData": {
+    "72bd428d-d5ee-4497-bd57-30d61e28b89f": {
+      "payload": "sample_data/json.json"
+    },
+    "d1cbe4e2-0068-4643-8037-6ed095cd02ef": {
+      "payload": "sample_data/covidcase.xml"
+    },
+    "9ab16cc8-40d0-4c38-8fcd-3cc32762292c": {
+      "vars-covidPayload": "sample_data/java.dwl"
+    },
+    "b5bdf47b-9250-45ea-a112-1e983ec79c3e": {
+      "payload": "sample_data/list_java.dwl"
+    }
+  }
+}
