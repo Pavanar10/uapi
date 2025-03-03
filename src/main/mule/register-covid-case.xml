@@ -17,7 +17,25 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 			<http:response reasonPhrase="#[vars.StatusMessage]" statusCode="#[vars.statusCode]"/>
 			<http:error-response statusCode="#[vars.]" />
 		</http:listener>
-		<logger level="INFO" doc:name="Start log" doc:id="f8edc1da-c987-4162-a6a1-275898e4e112" message='started flow  #[payload]'/>
+		<ee:transform doc:name="Transform Message1" doc:id="18c72e1d-aba0-4cf8-81d2-6d98e86cf161">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="correlationID"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-correlation-id' default payload.nationalID]]></ee:set-variable>
+				<ee:set-variable variableName="transactionID"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start log" doc:id="f8edc1da-c987-4162-a6a1-275898e4e112" message='#["The flow is started with " ++ vars.correlationID ++ &#10;"and " ++ vars.transactionID]'/>
 		<ee:transform doc:name="Transform Message" doc:id="72bd428d-d5ee-4497-bd57-30d61e28b89f" >
 			<ee:message >
 			</ee:message>
