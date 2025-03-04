@@ -1,0 +1,23 @@
+%dw 2.0
+
+type auto_432eb457_09f6_4eef_928a_e7d57fbba68e_Output_Variables_covidPayload = {|
+  national_id?: String, 
+  street_address?: String, 
+  country?: String, 
+  city?: String, 
+  date_of_birth?: String, 
+  case_type?: String, 
+  last_name?: String, 
+  source?: String, 
+  national_id_type?: String, 
+  update_date?: String, 
+  create_by?: String, 
+  phone?: String, 
+  state?: String, 
+  postal?: String, 
+  create_date?: String, 
+  update_by?: String, 
+  first_name?: String, 
+  email?: String
+|}
+

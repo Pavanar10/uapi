@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="39925182-2697-4a55-987e-90a53b8aa4d5" basePath="covid">
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
@@ -15,24 +16,18 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 	<flow name="register-covid-caseFlow" doc:id="b8c37e6f-f3c8-4af3-baf9-a23f582e0e71" >
 		<http:listener doc:name="Listener" doc:id="a122ee42-e61a-4293-a409-990ecb0e2b9f" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="POST">
 			<http:response reasonPhrase="#[vars.StatusMessage]" statusCode="#[vars.statusCode]"/>
-			<http:error-response statusCode="#[vars.]" />
+			<http:error-response statusCode="#[vars.]" >
+			</http:error-response>
 		</http:listener>
 		<ee:transform doc:name="Transform Message1" doc:id="18c72e1d-aba0-4cf8-81d2-6d98e86cf161">
 			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
 			</ee:message>
 			<ee:variables>
 				<ee:set-variable variableName="correlationID"><![CDATA[%dw 2.0
 output application/java
 ---
 attributes.headers.'x-correlation-id' default payload.nationalID]]></ee:set-variable>
-				<ee:set-variable variableName="transactionID"><![CDATA[%dw 2.0
-output application/java
----
-attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
+				<ee:set-variable variableName="transactionID"><![CDATA[attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<logger level="INFO" doc:name="Start log" doc:id="f8edc1da-c987-4162-a6a1-275898e4e112" message='#["The flow is started with " ++ vars.correlationID ++ &#10;"and " ++ vars.transactionID]'/>
@@ -66,6 +61,7 @@ var name = "UHIS"
 }]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
+		<flow-ref doc:name="Flow Reference Validation check" doc:id="2c23ec26-d8f8-447f-9186-910d3611c167" name="register-covid-caseSub_Flow"/>
 		<db:insert doc:name="InsertCovid case master" doc:id="46830e44-2b8c-4914-88ec-34022037bca1" config-ref="Database_Config">
 			<db:sql ><![CDATA[INSERT INTO cvd_case_master(source,case_type, first_name, last_name, phone, email, date_of_birth,national_id, national_id_type, street_address, city, 
                  state, 
@@ -117,4 +113,23 @@ output application/json
 		</ee:transform>
 		<logger level="INFO" doc:name="EndLogger" doc:id="118a5ac8-842c-481e-8183-7e9cff329e53" message="End log completed"/>
 	</flow>
+	<sub-flow name="register-covid-caseSub_Flow" doc:id="432eb457-09f6-4eef-928a-e7d57fbba68e" >
+		<validation:all doc:name="All" doc:id="224ddecc-784d-4e92-ba88-62981d4cb24d" >
+			<validation:is-not-null doc:name="Is not null source" doc:id="e2ac23dc-3abd-4c8e-8d51-1dc55de7b303" message="Source cannot be null" value="#[payload.source]" />
+			<validation:is-not-null doc:name="Is not null caseType" doc:id="0c40d7fc-f830-4d23-8149-cb8bb4ad2b6b" value="#[payload.caseType]" message="caseType cannot be null" />
+			<validation:is-not-null doc:name="Is not null firstName" doc:id="e4b52a92-1905-4228-a5e1-bf5e055a5d15" value="#[payload.firstName]" message="firstName cannot be null" />
+			<validation:is-not-null doc:name="Is not null lastName" doc:id="6502161f-89e5-4dec-bdbe-1d4102a6dc8d" value="#[payload.lastName]" message="lastName cannot be null" />
+			<validation:is-not-null doc:name="Is not null phone" doc:id="71d03bdc-23ac-4212-ae4f-0347ee8a49a9" value="#[payload.phone]" message="phone cannot be null" />
+			<validation:is-not-null doc:name="Is not null dateOfBirth" doc:id="ea8d6400-4303-4e6c-845f-c5a7bcbb48e9" value="#[payload.dateOfBirth]" message="dateOfBirth cannot be null" />
+			<validation:is-not-null doc:name="Is not null nationalID" doc:id="9f702a35-265c-40c4-b406-399f12f9fdeb" value="#[payload.nationalID]" message="nationalID cannot be null" />
+			<validation:is-not-null doc:name="Is not null nationalIDType" doc:id="807fdd7a-8059-47de-9df8-bac7dff9c2d5" value="#[payload.nationalIDType]" message="nationalIDType cannot be null" />
+			<validation:is-not-null doc:name="Is not null streetAddress" doc:id="a51d705a-41c7-47fc-b672-2d1b86799923" value="#[payload.address.streetAddress]" message="streetAddress cannot be null" />
+			<validation:is-not-null doc:name="Is not null city" doc:id="ea067c0c-4886-45bb-ba46-8be967a4f31d" value="#[payload.address.city]" message="city cannot be null" />
+			<validation:is-not-null doc:name="Is not null state" doc:id="a30196f4-453f-4001-8fe7-4f56d40783f1" value="#[payload.address.state]" message="state cannot be null" />
+			<validation:is-not-null doc:name="Is not null postal" doc:id="7f744e24-845c-4f80-89c4-756f0c872a12" value="#[payload.address.postal]" message="postal cannot be null" />
+			<validation:is-not-null doc:name="Is not null country" doc:id="705c7f07-40d5-4da2-ab55-eaf6dd0666b3" value="#[payload.address.country]" message="country cannot be null" />
+			<validation:is-email doc:name="Is email" doc:id="6dfc9f37-52c7-4498-962f-0518f8514e20" email="#[payload.email]" message="please enter poroer email" />
+			<validation:matches-regex doc:name="Matches  DOB" doc:id="0444ee6c-b07b-4375-b148-040185493c1f" value="#[payload.dateOfBirth]" regex='#["([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))"]' message='#["Invalid date fornat of DOB and expected format is yyyy-MM-dd"]' />
+		</validation:all>
+	</sub-flow>
 </mule>

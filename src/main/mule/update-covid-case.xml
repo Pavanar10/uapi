@@ -12,20 +12,13 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 		</http:listener>
 		<ee:transform doc:name="Transform Message" doc:id="0590492e-eb17-46eb-9b6a-7602cc4c243a" >
 			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
 			</ee:message>
 			<ee:variables >
 				<ee:set-variable variableName="correlationID" ><![CDATA[%dw 2.0
 output application/java
 ---
 attributes.headers.'x-correlation-id' default payload.covidCase.caseID]]></ee:set-variable>
-				<ee:set-variable variableName="transactionID" ><![CDATA[%dw 2.0
-output application/java
----
-attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
+				<ee:set-variable variableName="transactionID" ><![CDATA[attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<logger level="INFO" doc:name="startlogger" doc:id="72315f54-3b03-424d-8c8e-4659d5153533" message='#["The flow is started with " ++ vars.correlationID ++ "and " ++ vars.transactionID]'/>
